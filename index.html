@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>누르 온라인 — 빛의 순례</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0b1026;color:#f4efe1;font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR","PingFang SC","Microsoft YaHei","Segoe UI",Tahoma,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;z-index:5;pointer-events:none}
+.panel{background:rgba(10,36,34,.78);border:1px solid rgba(214,178,94,.55);border-radius:12px;padding:10px 14px;backdrop-filter:blur(6px)}
+#info{top:12px;inset-inline-start:12px;min-width:190px;font-size:13px;line-height:1.55}
+#info b{color:#e9c877;font-size:15px}
+#clock{font-size:22px;font-weight:700;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+#top{top:12px;inset-inline-end:12px;display:flex;gap:8px;pointer-events:auto}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid rgba(214,178,94,.6);background:rgba(10,36,34,.82);border-radius:10px;padding:9px 13px;font-size:13px;transition:transform .08s,background .15s}
+button:hover{background:rgba(22,70,64,.92)}button:active{transform:scale(.96)}
+button.gold{background:linear-gradient(180deg,#e9c877,#b8893a);color:#1c1505;border-color:#f6e2a8;font-weight:700}
+button.ghost{background:transparent}
+#act{bottom:26px;left:50%;transform:translateX(-50%);pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+#actBtn{font-size:16px;padding:13px 34px;border-radius:999px}
+#hint{font-size:11px;opacity:.75;text-shadow:0 1px 3px #000}
+#prog{font-size:13px;text-shadow:0 1px 4px #000;min-height:18px}
+#toast{position:fixed;z-index:30;top:22%;left:50%;transform:translateX(-50%);background:rgba(8,28,26,.92);border:1px solid #d6b25e;border-radius:999px;padding:10px 22px;font-size:14px;opacity:0;transition:opacity .35s;pointer-events:none;max-width:88vw;text-align:center}
+.ov{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(4,8,20,.72);padding:14px}
+.ov.on{display:flex}
+.card{width:min(560px,100%);max-height:92vh;overflow:auto;background:linear-gradient(180deg,#0f3a36,#0a2422);border:1px solid #d6b25e;border-radius:16px;padding:22px}
+.card h2{color:#e9c877;font-size:20px;margin-bottom:6px}
+.card p.sub{font-size:13px;opacity:.8;margin-bottom:16px;line-height:1.5}
+label{display:block;font-size:12px;opacity:.8;margin:12px 0 6px}
+input[type=text],select{width:100%;font:inherit;color:#f4efe1;background:#06201e;border:1px solid rgba(214,178,94,.5);border-radius:8px;padding:10px}
+input[type=range]{width:100%}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg button.sel{background:#e9c877;color:#1c1505;font-weight:700}
+.row{display:flex;gap:8px;margin-top:18px}.row button{flex:1}
+.rug{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid rgba(214,178,94,.3);border-radius:12px;margin-bottom:8px}
+.rug canvas{position:static;width:44px;height:70px;flex:none;border-radius:4px}
+.rug .m{flex:1;min-width:0}.rug .n{font-weight:700}.rug .d{font-size:12px;opacity:.75;margin-top:2px}
+.rug .p{color:#e9c877;font-weight:700;font-size:13px;margin-top:3px}
+.note{font-size:11px;opacity:.65;margin-top:10px;line-height:1.5}
+#logo{font-size:30px;color:#e9c877;font-weight:800;text-align:center}
+#logoS{text-align:center;font-size:13px;opacity:.8;margin:4px 0 10px}
+#rep .card{width:min(620px,100%);text-align:center;background:linear-gradient(180deg,#0a1230,#06201e)}
+#rep svg{width:100%;max-width:380px;height:auto;margin:4px auto 6px;display:block}
+#timer{font-size:34px;font-weight:700;color:#e9c877;font-variant-numeric:tabular-nums}
+#verses{margin:12px 0;text-align:center}
+#verses .v{padding:7px 4px;opacity:.38;transition:opacity .6s}
+#verses .v.on{opacity:1}
+#verses .a{font-family:"Amiri","Traditional Arabic","Geeza Pro","Noto Naskh Arabic",serif;font-size:22px;direction:rtl;line-height:1.9}
+#verses .t{font-size:12px;opacity:.85;margin-top:2px}
+@media(max-width:560px){#info{font-size:12px;min-width:150px}#clock{font-size:18px}#top button{padding:8px 9px;font-size:12px}#hint{display:none}}
+
+.panel{box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 3px rgba(214,178,94,.12)}
+#info{border-radius:16px 16px 16px 4px}
+#act .btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+#autoBtn{border-radius:999px;padding:12px 20px;font-size:14px}
+#actBtn,#autoBtn{box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#sched{bottom:26px;inset-inline-start:12px;display:flex;flex-direction:column;gap:5px}
+.chip{display:flex;justify-content:space-between;gap:14px;min-width:150px;font-size:12px;padding:5px 11px;border-radius:999px;background:rgba(10,36,34,.62);border:1px solid rgba(214,178,94,.28);backdrop-filter:blur(4px)}
+.chip b{font-variant-numeric:tabular-nums;font-weight:600}
+.chip.on{background:linear-gradient(90deg,#e9c877,#b8893a);color:#1c1505;border-color:#f6e2a8;font-weight:700}
+.chip.ok span::after{content:" ✓";color:#7fe0a8}.chip.on.ok span::after{color:#0d5c3a}
+#joy{position:fixed;z-index:4;width:92px;height:92px;margin:-46px 0 0 -46px;border:2px solid rgba(255,255,255,.5);border-radius:50%;display:none;pointer-events:none}
+#joyK{position:absolute;left:50%;top:50%;width:34px;height:34px;border-radius:50%;background:rgba(233,200,119,.85);transform:translate(-50%,-50%)}
+@media(max-width:700px){#sched{display:none}}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="info" class="hud panel">
+  <div id="clock">--:--</div>
+  <div id="cityLbl"></div>
+  <div><span data-i="now"></span>: <b id="curP"></b></div>
+  <div id="nextP"></div>
+  <div id="tawaf"></div>
+  <div id="wudu"></div>
+</div>
+<div id="top" class="hud">
+  <button id="bShop" data-i="shop"></button>
+  <button id="bRep" class="gold" data-i="repent"></button>
+  <button id="bSet" data-i="settings"></button>
+</div>
+<div id="sched" class="hud"></div>
+<div id="joy"><div id="joyK"></div></div>
+<div id="act" class="hud">
+  <div id="prog"></div>
+  <div class="btns"><button id="autoBtn"></button><button id="actBtn" class="gold"></button></div>
+  <div id="hint" data-i="hint"></div>
+</div>
+<div id="toast"></div>
+
+<!-- 로그인 -->
+<div id="login" class="ov on"><div class="card">
+  <div id="logo">☪ Noor Online</div>
+  <div id="logoS" data-i="sub"></div>
+  <label>Language · 언어 · اللغة · 语言</label>
+  <div class="seg" id="langSeg">
+    <button data-l="ko">한국어</button><button data-l="en">English</button><button data-l="ar">العربية</button><button data-l="zh">中文</button>
+  </div>
+  <label data-i="nick"></label><input type="text" id="nick" maxlength="12">
+  <label data-i="char"></label>
+  <div class="seg two" id="charSeg"><button data-c="m" data-i="male"></button><button data-c="f" data-i="female"></button></div>
+  <label data-i="city"></label><select id="citySel"></select>
+  <div class="row"><button class="gold" id="enter" data-i="enter"></button></div>
+</div></div>
+
+<!-- 상점 -->
+<div id="shop" class="ov"><div class="card">
+  <h2 data-i="shopT"></h2><p class="sub" data-i="shopS"></p>
+  <div id="rugs"></div>
+  <p class="note" data-i="demo"></p>
+  <div class="row"><button data-close data-i="close"></button></div>
+</div></div>
+
+<!-- 결제 확인 -->
+<div id="pay" class="ov" style="z-index:25"><div class="card" style="width:min(400px,100%)">
+  <h2 data-i="payT"></h2><p class="sub" id="payMsg"></p>
+  <p class="note" data-i="demo"></p>
+  <div class="row"><button data-close data-i="cancel"></button><button class="gold" id="payOk" data-i="pay"></button></div>
+</div></div>
+
+<!-- 설정 -->
+<div id="set" class="ov"><div class="card">
+  <h2 data-i="settings"></h2>
+  <label>Language</label>
+  <div class="seg" id="langSeg2">
+    <button data-l="ko">한국어</button><button data-l="en">English</button><button data-l="ar">العربية</button><button data-l="zh">中文</button>
+  </div>
+  <label data-i="city"></label><select id="citySel2"></select>
+  <label><span data-i="preview"></span> <span id="pvLbl"></span></label>
+  <input type="range" id="pv" min="0" max="24" step="0.25" value="0">
+  <p class="note" data-i="pvNote"></p>
+  <div class="row"><button data-close data-i="close"></button></div>
+</div></div>
+
+<!-- 회개 -->
+<div id="rep" class="ov"><div class="card">
+  <h2 data-i="repT"></h2>
+  <svg viewBox="0 0 380 190" aria-hidden="true">
+    <defs><radialGradient id="g1" cx="50%" cy="0%" r="90%"><stop offset="0" stop-color="#f6e2a8" stop-opacity=".55"/><stop offset="1" stop-color="#f6e2a8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b24"/><stop offset="1" stop-color="#17305a"/></linearGradient></defs>
+    <rect width="380" height="190" rx="12" fill="url(#g2)"/>
+    <g fill="#fff"><circle cx="40" cy="30" r="1.2"/><circle cx="90" cy="60" r="1"/><circle cx="130" cy="22" r="1.3"/><circle cx="250" cy="40" r="1"/><circle cx="330" cy="70" r="1.2"/><circle cx="300" cy="20" r="1"/><circle cx="60" cy="90" r=".9"/><circle cx="350" cy="110" r="1"/></g>
+    <path d="M300 30a22 22 0 1 0 14 38a18 18 0 1 1-14-38z" fill="#f6e2a8"/>
+    <path d="M190 0L60 190H320Z" fill="url(#g1)"/>
+    <path d="M0 165h380v25H0z" fill="#0a2422"/>
+    <rect x="150" y="160" width="80" height="9" rx="2" fill="#8a2433" stroke="#e9c877"/>
+    <g fill="#f4efe1"><circle cx="190" cy="104" r="9"/><path d="M176 162c0-26 4-44 14-44s14 18 14 44z"/>
+    <path d="M180 126l-18-20-4 4 16 24zM200 126l18-20 4 4-16 24z"/></g>
+  </svg>
+  <div id="timer">60:00</div>
+  <p class="sub" data-i="repS" style="margin-top:6px"></p>
+  <div id="verses"></div>
+  <p class="note" id="audNote"></p>
+  <div class="row"><button data-close data-i="close"></button></div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+/* ===== 운영 설정 ===== */
+const CONFIG={RECITATION_URL:''/* 실서버 배포 시 라이선스 확보한 낭송 음원 URL(같은 도메인) */,REPENT_PRICE:100000,REPENT_MS:3600e3,RUG_MS:864e5};
+
+/* ===== 다국어 ===== */
+const T={
+ko:{sub:'빛의 순례 — 고요히 걷고, 제 시간에 기도하는 곳',nick:'닉네임',char:'캐릭터',male:'형제',female:'자매',city:'도시 (예배 시간 기준)',enter:'입장하기',now:'현재 예배',next:'다음',tawaf:'타와프',wuduOk:'우두(세정) 완료',wuduNeed:'우두(세정) 필요',doWudu:'우두 하기',pray:'기도하기',stop:'기도 멈추기',shop:'양탄자',repent:'회개하기',settings:'설정',close:'닫기',cancel:'취소',pay:'결제하기',buy:'구매',use:'깔기',inUse:'사용 중',free:'무료',left:'남은 시간 {h}시간 {m}분',shopT:'기도 양탄자',shopS:'구매한 양탄자는 24시간 동안 사용할 수 있습니다.',demo:'※ 현재는 테스트 결제입니다. 실제 금액이 청구되지 않습니다.',payT:'결제 확인',payMsg:'{n} — {p}\n결제하시겠습니까?',hint:'이동: WASD / 방향키 / 화면 드래그',goFountain:'먼저 분수대에서 우두(세정)를 해주세요',toastWudu:'손, 팔, 입, 얼굴, 머리, 발을 세 번씩 씻었습니다',lap:'타와프 {n}/7 바퀴',tawafDone:'타와프 7바퀴를 마쳤습니다 ✦',prayDone:'{p} 예배를 마쳤습니다',bought:'{n} 구매 완료',rak:'{p} · 라카아트 {a}/{b}',nafl:'자유 기도',none:'예배 시간 사이',done:'완료',preview:'하늘 미리보기 (+시간)',pvNote:'슬라이더를 움직이면 시간이 앞당겨져 해·노을·밤하늘을 미리 볼 수 있습니다. 0이면 실제 시각입니다.',repT:'회개의 시간',repS:'오늘 하루의 잘못을 돌아보며 한 시간 동안 고요히 머무세요.',repBuy:'회개의 시간 (1시간)',audOn:'꾸란 제1장 「알 파티하」 낭송이 재생됩니다.',audOff:'미리보기에서는 낭송 음원 대신 잔잔한 배경음이 재생됩니다.',P:{fajr:'새벽(파즈르)',dhuhr:'정오(주흐르)',asr:'오후(아스르)',maghrib:'일몰(마그립)',isha:'밤(이샤)'},
+ rugs:[['기본 돗자리','누구나 쓸 수 있는 소박한 자리'],['면 양탄자','부드러운 청록빛 면직'],['양모 양탄자','따뜻한 진홍빛 양모'],['실크 양탄자','금테를 두른 에메랄드 실크'],['페르시아 수제 양탄자','장인이 짠 남색 문양'],['황금 자수 로열 양탄자','금사로 수놓은 최고급, 은은한 빛']],
+ F:['자비롭고 자애로우신 하나님의 이름으로','온 세상의 주님이신 하나님께 찬미를','자비롭고 자애로우신 분','심판의 날의 주인이신 분','저희는 당신만을 섬기고 당신께만 도움을 구합니다','저희를 바른 길로 이끌어 주소서','은총을 내리신 이들의 길로, 노여움을 산 이들이나 길 잃은 이들의 길이 아닌']},
+en:{sub:'Path of Light — walk quietly, pray on time',nick:'Nickname',char:'Character',male:'Brother',female:'Sister',city:'City (for prayer times)',enter:'Enter',now:'Current prayer',next:'Next',tawaf:'Tawaf',wuduOk:'Wudu done',wuduNeed:'Wudu needed',doWudu:'Perform wudu',pray:'Pray',stop:'Stop praying',shop:'Rugs',repent:'Repent',settings:'Settings',close:'Close',cancel:'Cancel',pay:'Pay',buy:'Buy',use:'Lay',inUse:'In use',free:'Free',left:'{h}h {m}m left',shopT:'Prayer rugs',shopS:'A purchased rug can be used for 24 hours.',demo:'※ This is a test checkout. No real charge is made.',payT:'Confirm payment',payMsg:'{n} — {p}\nProceed with payment?',hint:'Move: WASD / arrows / drag',goFountain:'Please perform wudu at the fountain first',toastWudu:'Hands, arms, mouth, face, head and feet washed three times',lap:'Tawaf {n}/7',tawafDone:'Seven rounds of tawaf complete ✦',prayDone:'{p} prayer complete',bought:'{n} purchased',rak:"{p} · rak'ah {a}/{b}",nafl:'Voluntary prayer',none:'Between prayers',done:'done',preview:'Sky preview (+hours)',pvNote:'Move the slider to fast-forward time and preview sun, dusk and night. 0 is real time.',repT:'Time of Repentance',repS:'Reflect on today and stay in stillness for one hour.',repBuy:'Time of Repentance (1 hour)',audOn:'Recitation of Al-Fatiha is playing.',audOff:'In preview, a soft ambient tone plays instead of the recitation.',P:{fajr:'Fajr',dhuhr:'Dhuhr',asr:'Asr',maghrib:'Maghrib',isha:'Isha'},
+ rugs:[['Plain mat','A humble mat for everyone'],['Cotton rug','Soft teal cotton'],['Wool rug','Warm crimson wool'],['Silk rug','Emerald silk with gold trim'],['Persian handwoven rug','Master-woven navy pattern'],['Royal gold-embroidered rug','Finest gold thread, softly glowing']],
+ F:['In the name of God, the Most Gracious, the Most Merciful','Praise be to God, Lord of all worlds','The Most Gracious, the Most Merciful','Master of the Day of Judgment','You alone we worship, and You alone we ask for help','Guide us on the straight path','The path of those You have favoured, not of those who earned anger nor of those astray']},
+ar:{sub:'رحلة النور — امشِ بهدوء وصلِّ في الوقت',nick:'الاسم',char:'الشخصية',male:'أخ',female:'أخت',city:'المدينة (لمواقيت الصلاة)',enter:'دخول',now:'الصلاة الحالية',next:'التالية',tawaf:'الطواف',wuduOk:'تم الوضوء',wuduNeed:'الوضوء مطلوب',doWudu:'توضأ',pray:'صلِّ',stop:'إيقاف الصلاة',shop:'السجاد',repent:'التوبة',settings:'الإعدادات',close:'إغلاق',cancel:'إلغاء',pay:'ادفع',buy:'شراء',use:'افرش',inUse:'مستخدمة',free:'مجاني',left:'المتبقي {h} س {m} د',shopT:'سجاد الصلاة',shopS:'تُستخدم السجادة المشتراة لمدة 24 ساعة.',demo:'※ هذا دفع تجريبي ولا يُخصم أي مبلغ حقيقي.',payT:'تأكيد الدفع',payMsg:'{n} — {p}\nهل تريد إتمام الدفع؟',hint:'الحركة: WASD / الأسهم / السحب',goFountain:'يرجى الوضوء عند النافورة أولاً',toastWudu:'غُسلت اليدان والذراعان والفم والوجه والرأس والقدمان ثلاثاً',lap:'الطواف {n}/7',tawafDone:'اكتملت سبعة أشواط ✦',prayDone:'تمت صلاة {p}',bought:'تم شراء {n}',rak:'{p} · الركعة {a}/{b}',nafl:'صلاة نافلة',none:'بين الصلوات',done:'تمت',preview:'معاينة السماء (+ساعات)',pvNote:'حرّك المؤشر لتقديم الوقت ومعاينة الشمس والغروب والليل. 0 هو الوقت الحقيقي.',repT:'وقت التوبة',repS:'تأمّل يومك وامكث في سكينة لمدة ساعة.',repBuy:'وقت التوبة (ساعة)',audOn:'تُتلى سورة الفاتحة الآن.',audOff:'في المعاينة تُشغَّل نغمة هادئة بدلاً من التلاوة.',P:{fajr:'الفجر',dhuhr:'الظهر',asr:'العصر',maghrib:'المغرب',isha:'العشاء'},
+ rugs:[['حصير بسيط','حصير متواضع للجميع'],['سجادة قطنية','قطن فيروزي ناعم'],['سجادة صوفية','صوف قرمزي دافئ'],['سجادة حريرية','حرير زمردي بحافة ذهبية'],['سجادة فارسية يدوية','نقش كحلي من صنع حِرفي'],['سجادة ملكية مطرزة بالذهب','أجود خيوط الذهب بوهج لطيف']],
+ F:['','','','','','','']},
+zh:{sub:'光之朝觐 — 静静行走，按时礼拜',nick:'昵称',char:'角色',male:'兄弟',female:'姐妹',city:'城市（礼拜时间）',enter:'进入',now:'当前礼拜',next:'下一次',tawaf:'环游',wuduOk:'已做小净',wuduNeed:'需要小净',doWudu:'做小净',pray:'礼拜',stop:'停止礼拜',shop:'礼拜毯',repent:'忏悔',settings:'设置',close:'关闭',cancel:'取消',pay:'支付',buy:'购买',use:'铺上',inUse:'使用中',free:'免费',left:'剩余 {h}小时{m}分',shopT:'礼拜毯',shopS:'购买的礼拜毯可使用24小时。',demo:'※ 目前为测试支付，不会实际扣款。',payT:'确认支付',payMsg:'{n} — {p}\n确定支付吗？',hint:'移动：WASD / 方向键 / 拖动屏幕',goFountain:'请先到水池做小净',toastWudu:'已将手、臂、口、脸、头、脚各洗三遍',lap:'环游 {n}/7 圈',tawafDone:'已完成七圈环游 ✦',prayDone:'{p}礼拜已完成',bought:'已购买 {n}',rak:'{p} · 第 {a}/{b} 拜',nafl:'自愿礼拜',none:'礼拜间隔',done:'已完成',preview:'天空预览（+小时）',pvNote:'拖动滑块可快进时间，预览日照、晚霞与夜空。0 为真实时间。',repT:'忏悔时刻',repS:'回顾今天的过错，静心停留一小时。',repBuy:'忏悔时刻（1小时）',audOn:'正在播放《开端章》诵读。',audOff:'预览中以柔和的背景音代替诵读。',P:{fajr:'晨礼',dhuhr:'晌礼',asr:'晡礼',maghrib:'昏礼',isha:'宵礼'},
+ rugs:[['普通草席','人人可用的朴素草席'],['棉毯','柔软的青绿色棉织'],['羊毛毯','温暖的深红羊毛'],['丝绸毯','镶金边的翡翠丝绸'],['波斯手工毯','匠人织就的藏青纹样'],['皇家金绣毯','顶级金线刺绣，微微发光']],
+ F:['奉至仁至慈的真主之名','一切赞颂全归真主，众世界的主','至仁至慈的主','报应日的主','我们只崇拜你，只求你佑助','求你引导我们走上正路','你所施恩者的路，不是受谴怒者的路，也不是迷误者的路']}
+};
+const FATIHA=['بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ','ٱلْحَمْدُ لِلَّٰهِ رَبِّ ٱلْعَٰلَمِينَ','ٱلرَّحْمَٰنِ ٱلرَّحِيمِ','مَٰلِكِ يَوْمِ ٱلدِّينِ','إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ','ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ','صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ'];
+const RUGS=[{id:'r0',price:0,c:['#cdb98a','#b39a66','#e6d9b5']},{id:'r1',price:10000,c:['#1f8a8a','#0f5d63','#d8f0ea']},{id:'r2',price:30000,c:['#a3283a','#6e1424','#f1d9a8']},{id:'r3',price:50000,c:['#1e8f5e','#0d5c3a','#e9c877']},{id:'r4',price:70000,c:['#1d2f6f','#8a2433','#e9c877']},{id:'r5',price:100000,c:['#4a1d6e','#e9c877','#fff3c4'],glow:1}];
+const CITIES=[['seoul',37.57,126.98,9,{ko:'서울',en:'Seoul',ar:'سيول',zh:'首尔'}],['mecca',21.42,39.83,3,{ko:'메카',en:'Mecca',ar:'مكة المكرمة',zh:'麦加'}],['jakarta',-6.2,106.85,7,{ko:'자카르타',en:'Jakarta',ar:'جاكرتا',zh:'雅加达'}],['kl',3.14,101.69,8,{ko:'쿠알라룸푸르',en:'Kuala Lumpur',ar:'كوالالمبور',zh:'吉隆坡'}],['beijing',39.9,116.4,8,{ko:'베이징',en:'Beijing',ar:'بكين',zh:'北京'}],['dubai',25.2,55.27,4,{ko:'두바이',en:'Dubai',ar:'دبي',zh:'迪拜'}],['istanbul',41.01,28.98,3,{ko:'이스탄불',en:'Istanbul',ar:'إسطنبول',zh:'伊斯坦布尔'}],['karachi',24.86,67,5,{ko:'카라치',en:'Karachi',ar:'كراتشي',zh:'卡拉奇'}],['dhaka',23.81,90.41,6,{ko:'다카',en:'Dhaka',ar:'دكا',zh:'达卡'}]];
+const RAK={fajr:2,dhuhr:4,asr:4,maghrib:3,isha:4},ORDER=['fajr','dhuhr','asr','maghrib','isha'];
+
+/* ===== 상태 저장 ===== */
+const store={get(){try{return JSON.parse(localStorage.getItem('noor')||'{}')}catch(e){return {}}},set(v){try{localStorage.setItem('noor',JSON.stringify(v))}catch(e){}}};
+const tzGuess=-new Date().getTimezoneOffset()/60;
+const S=Object.assign({lang:'ko',name:'',ch:'m',city:(CITIES.find(c=>c[3]===tzGuess)||CITIES[0])[0],rugs:{},rug:'r0',repEnd:0,prayed:{},tawafTotal:0,wudu:0},store.get());
+const save=()=>store.set(S);
+const $=id=>document.getElementById(id);
+let L=T[S.lang]||T.ko;
+const fmt=(s,o)=>s.replace(/\{(\w+)\}/g,(_,k)=>o[k]);
+const won=n=>'₩'+n.toLocaleString('en-US');
+let pvOff=0;const now=()=>Date.now()+pvOff*36e5;
+const city=()=>CITIES.find(c=>c[0]===S.city)||CITIES[0];
+
+/* ===== 태양 계산 ===== */
+const R=Math.PI/180,n180=x=>((x+180)%360+360)%360-180;
+function solar(ms){const d=ms/864e5-10957.5,g=R*(357.529+.98560028*d),q=280.459+.98564736*d,l=R*(q+1.915*Math.sin(g)+.02*Math.sin(2*g)),e=R*(23.439-3.6e-7*d);
+ const ra=Math.atan2(Math.cos(e)*Math.sin(l),Math.cos(l))/R,dec=Math.asin(Math.sin(e)*Math.sin(l));
+ return{ra,dec,eqt:n180(q-ra)/15,gmst:(18.697374558+24.06570982441908*d)*15}}
+function sunAt(ms,c){const s=solar(ms),ha=n180(s.gmst+c[2]-s.ra),la=c[1]*R,h=ha*R;
+ const alt=Math.asin(Math.sin(la)*Math.sin(s.dec)+Math.cos(la)*Math.cos(s.dec)*Math.cos(h));
+ const az=Math.atan2(-Math.sin(h),Math.tan(s.dec)*Math.cos(la)-Math.sin(la)*Math.cos(h));
+ return{alt:alt/R,az,ha}}
+function prayerTimes(ms,c){const tz=c[3],lo=new Date(ms+tz*36e5),base=Date.UTC(lo.getUTCFullYear(),lo.getUTCMonth(),lo.getUTCDate())-tz*36e5;
+ const s=solar(base+12*36e5),la=c[1]*R,noon=12+tz-c[2]/15-s.eqt;
+ const H=a=>Math.acos(Math.max(-1,Math.min(1,(Math.sin(a)-Math.sin(la)*Math.sin(s.dec))/(Math.cos(la)*Math.cos(s.dec)))))/R/15;
+ const asr=Math.atan(1/(1+Math.tan(Math.abs(la-s.dec)))),t=h=>base+h*36e5;
+ return{key:lo.toISOString().slice(0,10),base,fajr:t(noon-H(-18*R)),sunrise:t(noon-H(-.833*R)),dhuhr:t(noon+.03),asr:t(noon+H(asr)),maghrib:t(noon+H(-.833*R)),isha:t(noon+H(-17*R))}}
+function current(ms){const c=city(),p=prayerTimes(ms,c);let cur=null,key=p.key,next,nextT;
+ if(ms<p.fajr){cur='isha';key=prayerTimes(ms-864e5,c).key;next='fajr';nextT=p.fajr}
+ else if(ms<p.sunrise){cur='fajr';next='dhuhr';nextT=p.dhuhr}
+ else if(ms<p.dhuhr){next='dhuhr';nextT=p.dhuhr}
+ else if(ms<p.asr){cur='dhuhr';next='asr';nextT=p.asr}
+ else if(ms<p.maghrib){cur='asr';next='maghrib';nextT=p.maghrib}
+ else if(ms<p.isha){cur='maghrib';next='isha';nextT=p.isha}
+ else{cur='isha';next='fajr';nextT=prayerTimes(ms+864e5,c).fajr}
+ return{cur,key,next,nextT}}
+const hhmm=ms=>{const d=new Date(ms+city()[3]*36e5);return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')};
+
+/* ===== 추가 문구 ===== */
+Object.assign(T.ko,{noTrack:'순례 트랙 안에서는 양탄자를 펼 수 없습니다. 초록 점선 밖으로 나가주세요',auto:'자동 순례 (1바퀴)',autoStop:'자동 순례 멈춤',autoDone:'자동 순례 한 바퀴를 마쳤습니다',wash:'세정 {n}/3 회',hint:'이동 WASD · 시점 Q/E · 확대 휠',doWudu:'우두 하기'});
+Object.assign(T.en,{noTrack:'Rugs cannot be laid inside the tawaf track. Please step outside the green dashed line',auto:'Auto tawaf (1 round)',autoStop:'Stop auto tawaf',autoDone:'One auto round complete',wash:'Wash {n}/3',hint:'Move WASD · View Q/E · Zoom wheel'});
+Object.assign(T.ar,{noTrack:'لا يمكن فرش السجادة داخل مسار الطواف. يرجى الخروج خارج الخط الأخضر المتقطع',auto:'طواف تلقائي (شوط واحد)',autoStop:'إيقاف الطواف التلقائي',autoDone:'اكتمل شوط تلقائي واحد',wash:'الغسلة {n}/3',hint:'الحركة WASD · المنظور Q/E · التكبير بالعجلة'});
+Object.assign(T.zh,{noTrack:'环游道内不能铺礼拜毯，请走到绿色虚线之外',auto:'自动环游（1圈）',autoStop:'停止自动环游',autoDone:'已自动环游一圈',wash:'清洗 {n}/3 遍',hint:'移动 WASD · 视角 Q/E · 滚轮缩放'});
+
+/* ===== 월드 ===== */
+const WS=1800,CX=900,CY=900,KH=60,KT=136,FX=420,FY=1380;
+const MOBILE=Math.min(innerWidth,innerHeight)<600;
+const cv=$('cv');
+const ground=document.createElement('canvas');ground.width=ground.height=WS;
+(function(){const g=ground.getContext('2d');g.fillStyle='#d9d0bd';g.fillRect(0,0,WS,WS);
+ g.fillStyle='#efe9db';g.fillRect(90,90,WS-180,WS-180);
+ g.strokeStyle='rgba(120,100,70,.16)';g.lineWidth=1;g.beginPath();for(let i=90;i<=WS-90;i+=60){g.moveTo(i,90);g.lineTo(i,WS-90);g.moveTo(90,i);g.lineTo(WS-90,i)}g.stroke();
+ for(let i=120;i<WS-120;i+=120)for(let j=120;j<WS-120;j+=120){g.fillStyle='rgba(30,143,94,.10)';g.beginPath();g.moveTo(i,j-9);g.lineTo(i+9,j);g.lineTo(i,j+9);g.lineTo(i-9,j);g.fill()}
+ for(let r=440;r>=100;r-=60){g.beginPath();g.arc(CX,CY,r,0,7);g.fillStyle=(r/60|0)%2?'#faf7ef':'#eee8d8';g.fill();g.strokeStyle='rgba(180,150,80,.45)';g.lineWidth=2;g.stroke()}
+ g.strokeStyle='rgba(180,150,80,.25)';g.lineWidth=1;for(let i=0;i<24;i++){const a=i/24*6.283;g.beginPath();g.moveTo(CX+Math.cos(a)*100,CY+Math.sin(a)*100);g.lineTo(CX+Math.cos(a)*440,CY+Math.sin(a)*440);g.stroke()}
+ g.setLineDash([14,10]);g.strokeStyle='#1e8f5e';g.lineWidth=5;g.beginPath();g.arc(CX,CY,452,0,7);g.stroke();g.setLineDash([]);g.strokeStyle='#1e8f5e';g.lineWidth=4;g.beginPath();g.moveTo(CX+KH,CY+KH);g.lineTo(CX+315,CY+315);g.stroke();
+ g.strokeStyle='#b8893a';g.lineWidth=8;g.strokeRect(96,96,WS-192,WS-192);
+ g.beginPath();g.arc(FX,FY,96,0,7);g.fillStyle='#dfe9e6';g.fill();g.strokeStyle='#b8893a';g.lineWidth=4;g.stroke()})();
+
+/* ===== 3D 장면 ===== */
+const rnd=new THREE.WebGLRenderer({canvas:cv,antialias:!MOBILE,powerPreference:'high-performance'});
+rnd.setPixelRatio(Math.min(MOBILE?1.5:2,devicePixelRatio||1));rnd.shadowMap.enabled=true;rnd.shadowMap.type=THREE.PCFSoftShadowMap;rnd.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,5,14000);
+scene.fog=new THREE.Fog(0xbfd8ee,1400,5200);
+function resize(){rnd.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+const tex=c=>{const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t};
+const lam=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c},o||{}));
+function add(geo,mat,x,y,z,cast,recv,parent){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=!!cast;m.receiveShadow=!!recv;(parent||scene).add(m);return m}
+const cvs=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c};
+const glowTex=tex(cvs(128,128,(g)=>{const r=g.createRadialGradient(64,64,2,64,64,64);r.addColorStop(0,'rgba(255,225,160,1)');r.addColorStop(.4,'rgba(255,205,120,.35)');r.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=r;g.fillRect(0,0,128,128)}));
+
+// 조명
+const hemi=new THREE.HemisphereLight(0xcfe6ff,0xb8a888,.7);scene.add(hemi);
+const sunL=new THREE.DirectionalLight(0xfff4e0,1.1);sunL.castShadow=true;const SM=MOBILE?1024:2048;sunL.shadow.mapSize.set(SM,SM);
+Object.assign(sunL.shadow.camera,{left:-520,right:520,top:520,bottom:-520,near:100,far:3200});sunL.shadow.bias=-.0006;sunL.shadow.normalBias=1.2;scene.add(sunL,sunL.target);
+const moonL=new THREE.DirectionalLight(0x8fa6ff,0);scene.add(moonL);
+const nightPts=[[-270,-270],[270,-270],[-270,270],[270,270]].map(p=>{const l=new THREE.PointLight(0xffd9a0,0,950,1.2);l.position.set(CX+p[0],150,CY+p[1]);scene.add(l);return l});
+
+// 하늘
+const skyC=cvs(4,256,()=>{}),skyT=tex(skyC);
+const sky=new THREE.Mesh(new THREE.SphereGeometry(9000,24,16),new THREE.MeshBasicMaterial({map:skyT,side:THREE.BackSide,fog:false,depthWrite:false}));scene.add(sky);
+const starG=new THREE.BufferGeometry();{const p=[];for(let i=0;i<700;i++){const a=Math.random()*6.283,e=Math.random()*1.45+.06;p.push(Math.cos(a)*Math.cos(e)*8500,Math.sin(e)*8500,Math.sin(a)*Math.cos(e)*8500)}starG.setAttribute('position',new THREE.Float32BufferAttribute(p,3))}
+const stars=new THREE.Points(starG,new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));scene.add(stars);
+const sunS=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,blending:THREE.AdditiveBlending,fog:false,depthWrite:false,transparent:true}));sunS.scale.set(2600,2600,1);scene.add(sunS);
+const moonS=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(cvs(128,128,g=>{g.fillStyle='#f6ecc8';g.beginPath();g.arc(64,64,44,0,7);g.fill();g.globalCompositeOperation='destination-out';g.beginPath();g.arc(84,52,40,0,7);g.fill()})),fog:false,depthWrite:false,transparent:true,opacity:0}));moonS.scale.set(700,700,1);scene.add(moonS);
+
+// 지면
+add(new THREE.PlaneGeometry(WS,WS).rotateX(-Math.PI/2),lam(0xffffff,{map:tex(ground)}),CX,0,CY,0,1);
+add(new THREE.PlaneGeometry(16000,16000).rotateX(-Math.PI/2),lam(0xcbbf9f),CX,-1.5,CY,0,1);
+
+const bulbM=new THREE.MeshBasicMaterial({color:0xefe6cf});
+// 카바 (고해상도 절차적 텍스처 + 금장식)
+const kMats=[];let kHalo,spark;
+{const TW=1024,rr=(g,x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
+ const goldG=(g,w,h)=>{const G=g.createLinearGradient(0,0,w,h);for(let i=0;i<=10;i++)G.addColorStop(i/10,i%2?'#b07f24':'#fdeaa6');return G};
+ const weave=cvs(TW,TW,g=>{g.fillStyle='#0a0a0c';g.fillRect(0,0,TW,TW);
+  g.strokeStyle='rgba(255,255,255,.06)';g.lineWidth=6;for(let y=-30;y<TW;y+=46){g.beginPath();for(let x=0;x<=TW;x+=32)g.lineTo(x,y+((x/32)%2?26:0));g.stroke()}
+  g.strokeStyle='rgba(255,255,255,.028)';g.lineWidth=1;for(let y=0;y<TW;y+=3){g.beginPath();g.moveTo(0,y);g.lineTo(TW,y);g.stroke()}
+  for(let x=0;x<TW;x+=64){const gr=g.createLinearGradient(x,0,x+64,0);gr.addColorStop(0,'rgba(0,0,0,.4)');gr.addColorStop(.5,'rgba(255,255,255,.06)');gr.addColorStop(1,'rgba(0,0,0,.4)');g.fillStyle=gr;g.fillRect(x,0,64,TW)}});
+ const goldLayer=door=>cvs(TW,TW,g=>{const G=goldG(g,TW,TW);g.fillStyle=G;g.strokeStyle=G;g.lineCap='round';
+  g.fillRect(0,212,TW,9);g.fillRect(0,349,TW,9);g.fillRect(0,226,TW,2);g.fillRect(0,344,TW,2);
+  for(let i=0;i<4;i++){const x=i*256+12;g.lineWidth=5;rr(g,x,236,232,100,46);g.stroke();
+   for(let k=0;k<3;k++){g.beginPath();for(let t=0;t<=196;t+=3){const xx=x+18+t,yy=286+Math.sin(t/196*Math.PI*(3+k*2)+k*1.7)*(32-k*9)*Math.sin(t/196*Math.PI);t?g.lineTo(xx,yy):g.moveTo(xx,yy)}g.lineWidth=8-k*2.5;g.stroke()}
+   for(const dx of[40,116,192]){g.beginPath();g.arc(x+dx,286,7,0,7);g.fill()}
+   const cx=i*256+128;g.lineWidth=5;g.beginPath();g.moveTo(cx,384);g.bezierCurveTo(cx+56,404,cx+42,458,cx,482);g.bezierCurveTo(cx-42,458,cx-56,404,cx,384);g.stroke();
+   g.beginPath();g.arc(cx,430,15,0,7);g.fill();for(let p=0;p<8;p++){g.beginPath();g.arc(cx+Math.cos(p*.785)*26,430+Math.sin(p*.785)*26,3.5,0,7);g.fill()}
+   const d=i*256;g.beginPath();g.moveTo(d,410);g.lineTo(d+17,430);g.lineTo(d,450);g.lineTo(d-17,430);g.fill();if(!i){g.beginPath();g.moveTo(TW,410);g.lineTo(TW+17,430);g.lineTo(TW,450);g.lineTo(TW-17,430);g.fill()}}
+  g.fillRect(3,222,5,TW-262);g.fillRect(TW-8,222,5,TW-262);g.fillRect(0,TW-42,TW,6);g.fillRect(0,TW-28,TW,3);
+  for(let x=16;x<TW;x+=32){g.beginPath();g.arc(x,TW-14,4,0,7);g.fill()}
+  if(door){g.lineWidth=9;g.strokeRect(596,362,308,592);g.lineWidth=3;g.strokeRect(612,378,276,560);
+   g.lineWidth=5;g.beginPath();g.moveTo(632,620);g.lineTo(632,470);g.quadraticCurveTo(632,400,750,392);g.quadraticCurveTo(868,400,868,470);g.lineTo(868,620);g.stroke();
+   for(let y=440;y<=600;y+=54)for(let x=668;x<=832;x+=54){g.lineWidth=3;g.beginPath();g.arc(x,y,15,0,7);g.stroke();g.beginPath();g.arc(x,y,5,0,7);g.fill()}}});
+ const bumpT=new THREE.CanvasTexture(weave);
+ const face=door=>{const gl=goldLayer(door),m=new THREE.MeshPhongMaterial({map:tex(cvs(TW,TW,g=>{g.drawImage(weave,0,0);g.drawImage(gl,0,0)})),bumpMap:bumpT,bumpScale:.9,shininess:14,specular:0x3a3020,
+   emissive:0xffffff,emissiveMap:tex(cvs(TW,TW,g=>{g.fillStyle='#000';g.fillRect(0,0,TW,TW);g.drawImage(gl,0,0)})),emissiveIntensity:.15});m.map.anisotropy=8;kMats.push(m);return m};
+ const s=face(0),d=face(1),top=new THREE.MeshPhongMaterial({color:0x101013,shininess:6});
+ add(new THREE.BoxGeometry(KH*2,KT,KH*2),[s,s,top,top,d,s],CX,KT/2+10,CY,1,1);
+ const marble=new THREE.MeshPhongMaterial({color:0xf3eee2,shininess:70,specular:0x777777});
+ const base=add(new THREE.CylinderGeometry(KH*1.414+3,KH*1.414+15,10,4),marble,CX,5,CY,1,1);base.rotation.y=Math.PI/4;
+ const gold=new THREE.MeshPhongMaterial({color:0xe2b64a,shininess:120,specular:0xfff2c0,emissive:0x5a3d08});kMats.gold=gold;
+ // 황금 문
+ const doorT=tex(cvs(256,448,(g,w,h)=>{g.fillStyle=goldG(g,w,h);g.fillRect(0,0,w,h);g.strokeStyle='#7a5512';g.lineWidth=6;g.strokeRect(8,8,w-16,h-16);g.beginPath();g.moveTo(w/2,8);g.lineTo(w/2,h-8);g.stroke();
+  g.lineWidth=3;for(const x of[20,138])for(let y=24;y<h-60;y+=100){rr(g,x,y,98,84,14);g.stroke();g.beginPath();g.arc(x+49,y+42,20,0,7);g.stroke();g.beginPath();g.arc(x+49,y+42,6,0,7);g.fillStyle='#7a5512';g.fill()}
+  g.fillStyle='#fff6cf';for(const x of[112,144]){g.beginPath();g.arc(x,h*.55,7,0,7);g.fill()}}));
+ add(new THREE.BoxGeometry(23,39,2.4),new THREE.MeshPhongMaterial({map:doorT,shininess:110,specular:0xfff2c0,emissive:0x4a3206}),CX+27.9,41+10,CY+KH+1.2,1);
+ add(new THREE.BoxGeometry(27,3,3.4),gold,CX+27.9,30,CY+KH+1.6,1);
+ // 흑석(은테) · 미잡(황금 홈통)
+ const bs=add(new THREE.SphereGeometry(6.5,14,10),new THREE.MeshPhongMaterial({color:0xdfe3ea,shininess:140,specular:0xffffff}),CX+KH,50,CY+KH,1);bs.scale.set(1,1.25,1);
+ add(new THREE.SphereGeometry(3.6,10,8),new THREE.MeshPhongMaterial({color:0x140c0c,shininess:60}),CX+KH+2.6,50,CY+KH+2.6);
+ add(new THREE.BoxGeometry(7,4,20),gold,CX,KT+8,CY-KH-9,1);
+ // 히즈르 이스마일(반원 담) · 등
+ const hj=add(new THREE.TorusGeometry(64,5,8,28,Math.PI).rotateX(-Math.PI/2),marble,CX,9,CY-KH-16,1,1);hj.scale.y=2;
+ for(const sx of[-64,64]){add(new THREE.CylinderGeometry(1.5,1.5,22,6),gold,CX+sx,24,CY-KH-16,1);add(new THREE.SphereGeometry(4.5,8,6),bulbM,CX+sx,37,CY-KH-16)}
+ // 마캄 이브라힘
+ const mx=CX+34,mz=CY+KH+112;add(new THREE.CylinderGeometry(9,10,5,8),marble,mx,2.5,mz,1,1);
+ add(new THREE.CylinderGeometry(6.5,6.5,17,8,1,true),new THREE.MeshPhongMaterial({color:0xf0c860,shininess:120,specular:0xffffff,transparent:true,opacity:.55,side:THREE.DoubleSide,emissive:0x4a3206}),mx,13.5,mz,1);
+ add(new THREE.SphereGeometry(6.8,10,8,0,6.283,0,1.57),gold,mx,22,mz,1);add(new THREE.SphereGeometry(1.6,6,5),gold,mx,30,mz);
+ // 빛무리 · 금빛 입자
+ kHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));kHalo.scale.set(620,620,1);kHalo.position.set(CX,KT*.7,CY);scene.add(kHalo);
+ const n=MOBILE?60:130,p=new Float32Array(n*3);for(let i=0;i<n;i++){const a=Math.random()*6.283,r=70+Math.random()*90;p[i*3]=CX+Math.cos(a)*r;p[i*3+1]=Math.random()*230;p[i*3+2]=CY+Math.sin(a)*r}
+ const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(p,3));
+ spark=new THREE.Points(sg,new THREE.PointsMaterial({map:glowTex,color:0xffe9a8,size:7,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(spark)}
+
+// 회랑(아케이드)
+{const at=tex(cvs(128,128,(g,w,h)=>{g.fillStyle='#e4d9bf';g.fillRect(0,0,w,h);g.fillStyle='#b9a37a';g.fillRect(0,0,w,10);g.fillStyle='#1e8f5e';g.fillRect(0,10,w,4);
+  g.fillStyle='#5b4a30';g.beginPath();g.moveTo(26,128);g.lineTo(26,70);g.quadraticCurveTo(26,36,64,26);g.quadraticCurveTo(102,36,102,70);g.lineTo(102,128);g.fill();
+  g.strokeStyle='#caa24a';g.lineWidth=3;g.beginPath();g.moveTo(26,128);g.lineTo(26,70);g.quadraticCurveTo(26,36,64,26);g.quadraticCurveTo(102,36,102,70);g.lineTo(102,128);g.stroke()}));
+ at.wrapS=THREE.RepeatWrapping;at.repeat.set(20,1);const m=lam(0xffffff,{map:at}),roof=lam(0xd2c6a6);
+ for(const[x,z,w,d]of[[CX,45,WS,60],[CX,WS-45,WS,60],[45,CY,60,WS],[WS-45,CY,60,WS]]){add(new THREE.BoxGeometry(w,96,d),m,x,48,z,1,1);add(new THREE.BoxGeometry(w+8,8,d+8),roof,x,100,z,0,0)}}
+
+// 미나렛
+const MIN=[[250,250],[1550,250],[250,1550],[1550,1550]];
+{const st=lam(0xe9dfc6),gr=lam(0x1e8f5e),go=lam(0xd6b25e);
+ for(const[x,z]of MIN){add(new THREE.CylinderGeometry(15,19,240,12),st,x,120,z,1,1);add(new THREE.CylinderGeometry(25,20,10,12),st,x,160,z,1);add(new THREE.CylinderGeometry(24,18,10,12),st,x,240,z,1);
+  add(new THREE.CylinderGeometry(10,12,70,10),st,x,280,z,1);add(new THREE.CylinderGeometry(13,13,7,10),bulbM,x,250,z);add(new THREE.ConeGeometry(14,46,10),gr,x,338,z,1);add(new THREE.SphereGeometry(4.5,8,6),go,x,364,z)}}
+
+// 가로등 + 야간 빛무리
+const LAMPS=[];for(let i=0;i<12;i++){const a=(i+.5)/12*6.283;LAMPS.push([CX+Math.cos(a)*520,CY+Math.sin(a)*520])}
+const decalM=new THREE.MeshBasicMaterial({map:glowTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+const haloM=new THREE.SpriteMaterial({map:glowTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+{const post=lam(0x6b5a34),pg=new THREE.CylinderGeometry(1.6,2.4,52,6),bg=new THREE.SphereGeometry(5.5,10,8),dg=new THREE.PlaneGeometry(300,300).rotateX(-Math.PI/2);
+ for(const[x,z]of LAMPS){add(pg,post,x,26,z,1);add(bg,bulbM,x,56,z);add(dg,decalM,x,.6,z);const s=new THREE.Sprite(haloM);s.scale.set(90,90,1);s.position.set(x,56,z);scene.add(s)}
+ for(const[x,z]of MIN){const s=new THREE.Sprite(haloM);s.scale.set(150,150,1);s.position.set(x,250,z);scene.add(s)}
+ add(new THREE.PlaneGeometry(760,760).rotateX(-Math.PI/2),decalM,CX,.5,CY)}
+
+// 분수
+const ripples=[];
+{const mb=lam(0xe9e2d0);add(new THREE.CylinderGeometry(74,78,12,28),mb,FX,6,FY,1,1);
+ add(new THREE.CircleGeometry(66,28).rotateX(-Math.PI/2),lam(0x6fc3d8,{transparent:true,opacity:.9}),FX,12.3,FY);
+ add(new THREE.CylinderGeometry(7,9,44,10),mb,FX,22,FY,1);add(new THREE.CylinderGeometry(24,9,7,16),mb,FX,46,FY,1);add(new THREE.SphereGeometry(6,10,8),lam(0xd6b25e),FX,54,FY,1);
+ const rm=()=>new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,depthWrite:false});
+ for(let i=0;i<3;i++)ripples.push(add(new THREE.RingGeometry(.9,1,32).rotateX(-Math.PI/2),rm(),FX,12.6,FY))}
+
+// 원경 건물
+{const n=46,im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),lam(0xd8cdb2),n),o=new THREE.Object3D();
+ for(let i=0;i<n;i++){const a=i/n*6.283+Math.random()*.1,r=1700+Math.random()*1300,h=160+Math.random()*420;o.position.set(CX+Math.cos(a)*r,h/2,CY+Math.sin(a)*r);o.scale.set(140+Math.random()*200,h,140+Math.random()*200);o.rotation.y=Math.random();o.updateMatrix();im.setMatrixAt(i,o.matrix)}scene.add(im)}
+
+/* ===== 캐릭터 ===== */
+const G={leg:new THREE.CylinderGeometry(5.4,7.6,14,10),tor:new THREE.CylinderGeometry(4.4,5.6,12.5,10),head:new THREE.SphereGeometry(4.3,12,10),kufi:new THREE.CylinderGeometry(4.1,4.4,3,12),
+ hij:new THREE.SphereGeometry(5.1,12,10),drape:new THREE.CylinderGeometry(4.6,6.3,8,10),arm:new THREE.CylinderGeometry(1.5,1.7,10,6),hand:new THREE.SphereGeometry(1.8,6,5)};
+const skinM=lam(0xd9a878),whiteM=lam(0xfbfaf5);
+function makePerson(fem,robe,arms){const g=new THREE.Group(),rm=typeof robe==='number'?lam(robe):robe;
+ const legs=add(G.leg,rm,0,7,0,1,0,g),hip=new THREE.Group();hip.position.y=14;g.add(hip);
+ add(G.tor,rm,0,6,0,1,0,hip);add(G.head,skinM,0,16.4,fem?.9:0,1,0,hip);
+ if(fem){add(G.hij,rm,0,16.9,-.7,1,0,hip);add(G.drape,rm,0,11.6,-.4,0,0,hip)}else add(G.kufi,whiteM,0,19.6,0,0,0,hip);
+ const A=[];if(arms)for(const sx of[-1,1]){const a=new THREE.Group();a.position.set(sx*5.9,11.2,0);hip.add(a);add(G.arm,rm,0,-5,0,1,0,a);add(G.hand,skinM,0,-10.6,0,0,0,a);A.push(a)}
+ scene.add(g);return{g,legs,hip,A,ls:1,hr:0,ar:0}}
+const POSE={stand:[1,0,0],ruku:[1,1.35,-.35],sujud:[.42,1.66,-2.5],sit:[.42,.08,-.4],wash:[1,.75,-1.25]};
+function pose(c,name,dt,swing){const t=POSE[name],k=1-Math.exp(-dt*7);c.ls+=(t[0]-c.ls)*k;c.hr+=(t[1]-c.hr)*k;c.ar+=(t[2]-c.ar)*k;
+ const w=1+(1-c.ls)*.6;c.legs.scale.set(w,c.ls,w);c.legs.position.y=7*c.ls;c.hip.position.y=14*c.ls;c.hip.rotation.x=c.hr;
+ if(c.A[0]){c.A[0].rotation.x=c.ar+(swing||0);c.A[1].rotation.x=c.ar-(swing||0)}}
+const P={x:CX,y:CY+470,face:Math.PI,walk:0,moving:0};
+let hero=null;function buildHero(){if(hero)scene.remove(hero.g);hero=makePerson(S.ch==='f',S.ch==='f'?0x274b6b:0xffffff,1)}
+buildHero();
+const NPC=[],npcM=[whiteM,whiteM,lam(0x3d4a5c),lam(0x5a3d52),lam(0x2f5a4e),lam(0xf1ead8)];
+for(let i=0;i<(MOBILE?20:34);i++){const f=Math.random()<.4,c=makePerson(f,f?npcM[2+(i%3)]:npcM[i%2?0:5],0);NPC.push({c,r:188+Math.random()*235,a:Math.random()*6.283,w:.045+Math.random()*.06,ph:Math.random()*6})}
+// 이름표 · 양탄자
+const tagC=cvs(256,64,()=>{}),tagT=tex(tagC),tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagT,transparent:true,depthWrite:false}));tag.scale.set(64,16,1);scene.add(tag);
+function setTag(){const g=tagC.getContext('2d');g.clearRect(0,0,256,64);g.font='600 30px "Malgun Gothic",sans-serif';g.textAlign='center';g.textBaseline='middle';const n=S.name||'';const w=Math.min(240,g.measureText(n).width+28);
+ g.fillStyle='rgba(10,36,34,.7)';g.beginPath();g.rect(128-w/2,10,w,44);g.fill();g.fillStyle='#f6e2a8';g.fillText(n,128,33,220);tagT.needsUpdate=true}
+const rugC=cvs(104,176,()=>{}),rugT=tex(rugC),rugM=new THREE.Mesh(new THREE.PlaneGeometry(27,46).rotateX(-Math.PI/2),lam(0xffffff,{map:rugT}));rugM.receiveShadow=true;rugM.visible=false;scene.add(rugM);
+const rugGlow=new THREE.Mesh(new THREE.PlaneGeometry(90,110).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:glowTex,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false}));rugGlow.visible=false;scene.add(rugGlow);
+function rugArt(c,r,w,h,t){const[a,b,d]=r.c;c.fillStyle=b;c.fillRect(-w/2,-h/2,w,h);c.fillStyle=a;c.fillRect(-w/2+3,-h/2+3,w-6,h-6);
+ c.strokeStyle=d;c.lineWidth=1;c.strokeRect(-w/2+5,-h/2+5,w-10,h-10);
+ c.fillStyle=d;c.beginPath();c.moveTo(-w/4,-h/2+h*.42);c.lineTo(0,-h/2+9);c.lineTo(w/4,-h/2+h*.42);c.closePath();c.globalAlpha=.55;c.fill();c.globalAlpha=1;
+ if(r.price>=30000){c.beginPath();c.arc(0,h*.18,w*.14,0,7);c.fill()}
+ if(r.price>=70000){c.fillRect(-w/2+7,h*.33,w-14,1.5);for(let i=-1;i<=1;i++){c.beginPath();c.arc(i*w*.22,h*.4,1.6,0,7);c.fill()}}
+ c.fillStyle=d;for(let i=-w/2+1;i<w/2;i+=4){c.fillRect(i,-h/2-3,1.5,3);c.fillRect(i,h/2,1.5,3)}}
+const activeRug=()=>{const r=RUGS.find(r=>r.id===S.rug)||RUGS[0];return(r.price===0||(S.rugs[r.id]||0)>Date.now())?r:RUGS[0]};
+function layRug(){const r=activeRug(),g=rugC.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,104,176);g.translate(52,88);g.scale(3.7,3.7);rugArt(g,r,26,44);rugT.needsUpdate=true;
+ const f=Math.atan2(CX-P.x,CY-P.y);P.face=f;rugM.rotation.y=f+Math.PI;rugM.position.set(P.x+Math.sin(f)*9,.8,P.y+Math.cos(f)*9);rugM.visible=true;rugGlow.position.copy(rugM.position);rugGlow.position.y=.7;rugGlow.rotation.y=rugM.rotation.y;rugGlow.visible=!!r.glow}
+
+/* ===== 태양 → 조명 ===== */
+const SKY=[[-18,[6,10,30],[16,24,58]],[-8,[20,26,70],[110,70,110]],[-2,[50,60,120],[240,130,80]],[4,[90,140,200],[250,200,140]],[15,[60,140,220],[190,225,250]]];
+function skyCol(a){if(a<=SKY[0][0])return[SKY[0][1],SKY[0][2]];for(let i=1;i<SKY.length;i++)if(a<=SKY[i][0]){const p=SKY[i-1],q=SKY[i],k=(a-p[0])/(q[0]-p[0]),m=(u,v)=>u.map((x,j)=>Math.round(x+(v[j]-x)*k));return[m(p[1],q[1]),m(p[2],q[2])]}return[SKY[4][1],SKY[4][2]]}
+let sun={alt:40,az:3.14,ha:0},cur=null,dayK=1,nightK=0;const sunDir=new THREE.Vector3(0,1,0),cl=(x)=>Math.max(0,Math.min(1,x));
+const C1=new THREE.Color(),C2=new THREE.Color();
+function applySun(){sun=sunAt(now(),city());const e=sun.alt*R;sunDir.set(Math.sin(sun.az)*Math.cos(e),Math.sin(e),-Math.cos(sun.az)*Math.cos(e));
+ dayK=cl((sun.alt+3)/12);nightK=cl((2-sun.alt)/14);
+ const[a,b]=skyCol(sun.alt),g=skyC.getContext('2d'),gr=g.createLinearGradient(0,0,0,128);gr.addColorStop(0,`rgb(${a})`);gr.addColorStop(1,`rgb(${b})`);g.fillStyle=gr;g.fillRect(0,0,4,128);g.fillStyle=`rgb(${b})`;g.fillRect(0,128,4,128);skyT.needsUpdate=true;
+ scene.fog.color.setRGB(b[0]/255,b[1]/255,b[2]/255).convertSRGBToLinear();
+ sunL.intensity=.95*dayK;sunL.color.copy(C1.set(0xff8a45)).lerp(C2.set(0xfff4e0),cl(sun.alt/22));sunL.castShadow=dayK>.1;
+ hemi.intensity=.32+.3*dayK;hemi.color.setRGB(a[0]/255,a[1]/255,a[2]/255).lerp(C2.set(0xffffff),.45);
+ moonL.intensity=.3*nightK;moonL.position.set(-sunDir.x,.6,-sunDir.z);
+ for(const l of nightPts)l.intensity=1.5*nightK;for(const m of kMats)m.emissiveIntensity=.16+.85*nightK;kMats.gold.emissiveIntensity=.6+nightK;kHalo.material.opacity=.12+.5*nightK;spark.material.opacity=.3+.6*nightK;decalM.opacity=.5*nightK;haloM.opacity=.9*nightK;bulbM.color.set(nightK>.2?0xffe6a3:0xefe6cf);
+ stars.material.opacity=cl((-sun.alt-3)/10);moonS.material.opacity=nightK;
+ sunS.visible=sun.alt>-7;sunS.material.color.copy(C1.set(0xff9a55)).lerp(C2.set(0xfffbe8),cl(sun.alt/18))}
+
+/* ===== 입력 ===== */
+const keys={};addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;keys[e.key.toLowerCase()]=1});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+let joy=null,rot=null,yawOff=0,yaw=0,dist=250;const jr=$('joy'),jk=$('joyK');
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);if(e.button===2){rot={x:e.clientX};return}joy={x:e.clientX,y:e.clientY,dx:0,dy:0};jr.style.display='block';jr.style.left=e.clientX+'px';jr.style.top=e.clientY+'px';jk.style.transform='translate(-50%,-50%)'});
+cv.addEventListener('pointermove',e=>{if(rot){yawOff-=(e.clientX-rot.x)*.006;rot.x=e.clientX}else if(joy){joy.dx=e.clientX-joy.x;joy.dy=e.clientY-joy.y;const m=Math.hypot(joy.dx,joy.dy),k=m>44?44/m:1;jk.style.transform=`translate(calc(-50% + ${joy.dx*k}px),calc(-50% + ${joy.dy*k}px))`}});
+const jEnd=()=>{joy=null;rot=null;jr.style.display='none'};cv.addEventListener('pointerup',jEnd);cv.addEventListener('pointercancel',jEnd);
+cv.addEventListener('wheel',e=>{dist=Math.max(130,Math.min(460,dist+e.deltaY*.25))},{passive:true});
+
+/* ===== 로직 ===== */
+const PH=[['stand',3],['ruku',2],['stand',1],['sujud',2],['sit',1.5],['sujud',2]];
+let pray=null,washT=0,auto=null,tw={prev:null,cum:0,laps:0},heroPose='stand';
+const wuOk=()=>Date.now()-S.wudu<6*36e5;
+const hit=(x,y)=>(Math.abs(x-CX)<KH+22&&Math.abs(y-CY)<KH+22)||Math.hypot(x-FX,y-FY)<86||Math.hypot(x-CX,y-(CY-KH-16))<80||Math.hypot(x-CX-34,y-(CY+KH+112))<16;
+function update(dt,t){
+ for(const n of NPC){n.a-=n.w*dt;const g=n.c.g;g.position.set(CX+Math.cos(n.a)*n.r,Math.abs(Math.sin(t/190+n.ph))*1.1,CY+Math.sin(n.a)*n.r);g.rotation.y=Math.atan2(Math.sin(n.a),-Math.cos(n.a))}
+ {const p=spark.geometry.attributes.position;for(let i=0;i<p.count;i++){let y=p.getY(i)+dt*9;if(y>230)y=0;p.setY(i,y)}p.needsUpdate=true}
+ ripples.forEach((m,i)=>{const k=((t/2600+i/3)%1);m.scale.setScalar(12+k*52);m.material.opacity=.55*(1-k)});
+ P.moving=0;heroPose='stand';
+ if(pray){pray.t+=dt;const per=11.5,rk=Math.floor(pray.t/per),lt=pray.t-rk*per;if(rk>=pray.total){finishPrayer();return}
+  pray.rk=rk;let acc=0;for(const[p,d]of PH){acc+=d;if(lt<acc){heroPose=p;break}}return}
+ if(washT>0){heroPose='wash';P.face=Math.atan2(FX-P.x,FY-P.y);washT-=dt;
+  if(washT<=0){S.wuduN=(S.wuduN||0)+1;if(S.wuduN>=3){S.wuduN=0;S.wudu=Date.now();toast(L.toastWudu)}else toast(fmt(L.wash,{n:S.wuduN}));save();hud()}return}
+ let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+ if(joy&&Math.hypot(joy.dx,joy.dy)>10){const m=Math.hypot(joy.dx,joy.dy);dx=joy.dx/m;dy=joy.dy/m}
+ if(keys.q)yawOff+=dt*1.4;if(keys.e)yawOff-=dt*1.4;
+ const m=Math.hypot(dx,dy);
+ if(m>0&&auto){auto=null;hud()}
+ if(auto){let r=Math.hypot(P.x-CX,P.y-CY),a=Math.atan2(P.y-CY,P.x-CX);const sp=55*dt,ox=P.x,oy=P.y;
+  if(r>410)r-=sp;else if(r<185)r+=sp;else{const da=.075*dt;a-=da;auto.sw+=da;r+=(Math.max(195,Math.min(400,r))-r)*Math.min(1,dt)}
+  P.x=CX+Math.cos(a)*r;P.y=CY+Math.sin(a)*r;P.face=Math.atan2(P.x-ox,P.y-oy);P.walk+=dt*.45;P.moving=1;
+  if(auto.sw>=6.2832){auto=null;toast(L.autoDone);hud()}}
+ else if(m>0){dx/=m;dy/=m;const mx=Math.cos(yaw)*dx+Math.sin(yaw)*dy,mz=-Math.sin(yaw)*dx+Math.cos(yaw)*dy,sp=150*dt;
+  let nx=Math.max(110,Math.min(WS-110,P.x+mx*sp)),ny=Math.max(110,Math.min(WS-110,P.y+mz*sp));
+  if(!hit(nx,P.y))P.x=nx;if(!hit(P.x,ny))P.y=ny;P.face=Math.atan2(mx,mz);P.walk+=dt;P.moving=1}
+ const r=Math.hypot(P.x-CX,P.y-CY),a=Math.atan2(P.y-CY,P.x-CX);
+ if(r>70&&r<450){if(tw.prev!==null){let da=a-tw.prev;if(da>Math.PI)da-=6.2832;if(da<-Math.PI)da+=6.2832;tw.cum+=da}
+  const laps=Math.floor(Math.max(0,-tw.cum)/6.2832);
+  if(laps>tw.laps){tw.laps=laps;if(laps>=7){S.tawafTotal++;save();tw.cum=0;tw.laps=0;toast(L.tawafDone)}else toast(fmt(L.lap,{n:laps}));hud()}}
+ tw.prev=a}
+let faceS=Math.PI;
+function sync(dt,t,intro){
+ const swing=P.moving?Math.sin(P.walk*9)*.55:0;pose(hero,heroPose,dt,swing);
+ let df=P.face-faceS;df=Math.atan2(Math.sin(df),Math.cos(df));faceS+=df*Math.min(1,dt*10);
+ hero.g.position.set(P.x,P.moving?Math.abs(Math.sin(P.walk*9))*1.3:0,P.y);hero.g.rotation.y=faceS;
+ tag.position.set(P.x,14*hero.ls+34,P.y);tag.visible=!intro;
+ rugM.visible=!!pray;if(!pray)rugGlow.visible=false;else if(rugGlow.visible)rugGlow.material.opacity=.14+.08*Math.sin(t/400)+.3*nightK;
+ // 카메라: 항상 카바를 바라보는 3인칭 시점
+ let tx=P.x,tz=P.y,d=pray?Math.min(dist,190):dist,ty=24,want;
+ if(intro){tx=CX;tz=CY;d=640;ty=70;want=t/9000}else want=Math.atan2(P.x-CX,P.y-CY)+yawOff;
+ let dy=want-yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));yaw+=dy*Math.min(1,dt*(intro?5:3));
+ const cx=tx+Math.sin(yaw)*d,cz=tz+Math.cos(yaw)*d,cy=ty+d*.46,k=Math.min(1,dt*6);
+ cam.position.x+=(cx-cam.position.x)*k;cam.position.y+=(cy-cam.position.y)*k;cam.position.z+=(cz-cam.position.z)*k;cam.lookAt(tx,ty+12,tz);
+ sky.position.copy(cam.position);stars.position.copy(cam.position);
+ sunS.position.copy(cam.position).addScaledVector(sunDir,7000);
+ moonS.position.set(cam.position.x-sunDir.x*5000,cam.position.y+3600,cam.position.z-sunDir.z*5000);
+ sunL.target.position.set(tx,0,tz);sunL.position.set(tx+sunDir.x*1500,Math.max(.06,sunDir.y)*1500,tz+sunDir.z*1500)}
+function startPrayer(){if(Math.hypot(P.x-CX,P.y-CY)<460){toast(L.noTrack);return}if(!wuOk()){toast(L.goFountain);return}auto=null;
+ const c=current(now());let name=c.cur;const done=name&&(S.prayed[c.key]||{})[name];
+ pray={name:(!name||done)?null:name,key:c.key,total:(!name||done)?2:RAK[name],t:0,rk:0};layRug();hud()}
+function finishPrayer(){const p=pray;pray=null;if(p.name){(S.prayed[p.key]=S.prayed[p.key]||{})[p.name]=1;const ks=Object.keys(S.prayed).sort();while(ks.length>7)delete S.prayed[ks.shift()];save()}
+ toast(fmt(L.prayDone,{p:p.name?L.P[p.name]:L.nafl}));hud()}
+const nearF=()=>Math.hypot(P.x-FX,P.y-FY)<150;
+function hud(){const ms=now();cur=current(ms);$('clock').textContent=hhmm(ms);$('cityLbl').textContent=city()[4][S.lang];
+ const done=cur.cur&&(S.prayed[cur.key]||{})[cur.cur];$('curP').textContent=cur.cur?L.P[cur.cur]+(done?' ✓':''):L.none;
+ $('nextP').textContent=L.next+': '+L.P[cur.next]+' '+hhmm(cur.nextT);
+ $('tawaf').textContent='🕋 '+L.tawaf+' '+tw.laps+'/7'+(S.tawafTotal?' · ✦'+S.tawafTotal:'');
+ const wu=wuOk(),n=S.wuduN||0;$('wudu').textContent='💧 '+(wu?L.wuduOk:L.wuduNeed+' '+n+'/3');
+ const pt=prayerTimes(ms,city()),sc=$('sched');sc.textContent='';
+ for(const k of ORDER){const d=document.createElement('div');d.className='chip'+(cur.cur===k?' on':'')+((S.prayed[pt.key]||{})[k]?' ok':'');const a=document.createElement('span');a.textContent=L.P[k];const b=document.createElement('b');b.textContent=hhmm(pt[k]);d.append(a,b);sc.append(d)}
+ const b=$('actBtn');if(pray){b.textContent=L.stop;$('prog').textContent=fmt(L.rak,{p:pray.name?L.P[pray.name]:L.nafl,a:Math.min(pray.total,pray.rk+1),b:pray.total})}
+ else{$('prog').textContent='';b.textContent=(!wu&&nearF())?'💧 '+L.doWudu+' ('+n+'/3)':'🤲 '+L.pray}
+ $('autoBtn').textContent=auto?L.autoStop:'🕋 '+L.auto;$('autoBtn').style.display=pray?'none':''}
+$('actBtn').onclick=()=>{if(pray){pray=null;hud();return}if(washT>0)return;
+ if(!wuOk()&&nearF()){auto=null;washT=1.3;$('prog').textContent='💧 …';return}startPrayer()};
+$('autoBtn').onclick=()=>{if(pray||washT>0)return;auto=auto?null:{sw:0};hud()};
+let toastT;function toast(m){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,2600)}
+
+/* ===== 상점 / 결제 ===== */
+const open=id=>$(id).classList.add('on'),close=id=>$(id).classList.remove('on');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{const o=b.closest('.ov');o.classList.remove('on');if(o.id==='rep')stopAudio()});
+function buildShop(){const box=$('rugs');box.innerHTML='';RUGS.forEach((r,i)=>{const exp=S.rugs[r.id]||0,own=r.price===0||exp>Date.now(),el=document.createElement('div');el.className='rug';
+ const c=document.createElement('canvas');c.width=88;c.height=140;const g=c.getContext('2d');g.translate(44,70);g.scale(2.6,2.6);rugArt(g,r,26,44,0);
+ const m=document.createElement('div');m.className='m';const rem=Math.max(0,exp-Date.now());
+ m.innerHTML=`<div class="n"></div><div class="d"></div><div class="p"></div>`;m.children[0].textContent=L.rugs[i][0];m.children[1].textContent=L.rugs[i][1];
+ m.children[2].textContent=r.price===0?L.free:own?fmt(L.left,{h:Math.floor(rem/36e5),m:Math.floor(rem%36e5/6e4)}):won(r.price)+' / 24h';
+ const b=document.createElement('button');
+ if(own){const use=S.rug===r.id;b.textContent=use?L.inUse:L.use;if(use)b.className='ghost';b.onclick=()=>{S.rug=r.id;save();buildShop()}}
+ else{b.className='gold';b.textContent=L.buy;b.onclick=()=>askPay(L.rugs[i][0],r.price,()=>{S.rugs[r.id]=Date.now()+CONFIG.RUG_MS;S.rug=r.id;save();buildShop();toast(fmt(L.bought,{n:L.rugs[i][0]}))})}
+ el.append(c,m,b);box.append(el)})}
+let payCb=null;function askPay(n,p,cb){$('payMsg').textContent=fmt(L.payMsg,{n,p:won(p)});$('payMsg').style.whiteSpace='pre-line';payCb=cb;open('pay')}
+/* 실결제 연동 지점: 여기서 PG(토스페이먼츠 등) 결제창 호출 → 서버 검증 후 payCb 실행 */
+$('payOk').onclick=()=>{close('pay');if(payCb)payCb();payCb=null};
+$('bShop').onclick=()=>{buildShop();open('shop')};
+$('bSet').onclick=()=>open('set');
+
+/* ===== 회개 ===== */
+let actx=null,nodes=[],aud=null,repI=null;
+function startAudio(){try{if(CONFIG.RECITATION_URL){aud=new Audio(CONFIG.RECITATION_URL);aud.loop=true;aud.play().catch(()=>{});return}
+ actx=new(window.AudioContext||window.webkitAudioContext)();const master=actx.createGain();master.gain.value=0;master.gain.linearRampToValueAtTime(.05,actx.currentTime+4);master.connect(actx.destination);
+ for(const f of[110,164.81,220,329.63]){const o=actx.createOscillator(),g=actx.createGain(),l=actx.createOscillator(),lg=actx.createGain();o.type='sine';o.frequency.value=f;l.frequency.value=.05+Math.random()*.08;lg.gain.value=.4;g.gain.value=.5;l.connect(lg);lg.connect(g.gain);o.connect(g);g.connect(master);o.start();l.start();nodes.push(o,l)}}catch(e){}}
+function stopAudio(){try{if(aud){aud.pause();aud=null}nodes.forEach(n=>n.stop());nodes=[];if(actx){actx.close();actx=null}}catch(e){}clearInterval(repI)}
+function openRep(){const box=$('verses');box.innerHTML='';FATIHA.forEach((v,i)=>{const d=document.createElement('div');d.className='v';const a=document.createElement('div');a.className='a';a.textContent=v;d.append(a);if(L.F[i]){const t=document.createElement('div');t.className='t';t.textContent=L.F[i];d.append(t)}box.append(d)});
+ $('audNote').textContent=CONFIG.RECITATION_URL?L.audOn:L.audOff;open('rep');startAudio();
+ const tick=()=>{const rem=S.repEnd-Date.now();if(rem<=0){close('rep');stopAudio();return}
+  $('timer').textContent=String(Math.floor(rem/6e4)).padStart(2,'0')+':'+String(Math.floor(rem%6e4/1e3)).padStart(2,'0');
+  const k=Math.floor((CONFIG.REPENT_MS-rem)/8e3)%7;[...box.children].forEach((c,i)=>c.classList.toggle('on',i===k))};tick();repI=setInterval(tick,500)}
+$('bRep').onclick=()=>{if(S.repEnd>Date.now()){openRep();return}askPay(L.repBuy,CONFIG.REPENT_PRICE,()=>{S.repEnd=Date.now()+CONFIG.REPENT_MS;save();openRep()})};
+
+/* ===== 언어 / 로그인 / 설정 ===== */
+function applyLang(){L=T[S.lang];document.documentElement.lang=S.lang;document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';
+ document.querySelectorAll('[data-i]').forEach(e=>e.textContent=L[e.dataset.i]);
+ document.querySelectorAll('[data-l]').forEach(b=>b.classList.toggle('sel',b.dataset.l===S.lang));
+ document.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('sel',b.dataset.c===S.ch));
+ for(const id of['citySel','citySel2']){const s=$(id);s.innerHTML='';CITIES.forEach(c=>{const o=document.createElement('option');o.value=c[0];o.textContent=c[4][S.lang];s.append(o)});s.value=S.city}
+ $('pvLbl').textContent='+'+pvOff+'h';hud()}
+document.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{S.lang=b.dataset.l;save();applyLang()});
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{S.ch=b.dataset.c;buildHero();applyLang()});
+for(const id of['citySel','citySel2'])$(id).onchange=e=>{S.city=e.target.value;save();applySun();applyLang()};
+$('pv').oninput=e=>{pvOff=+e.target.value;$('pvLbl').textContent='+'+pvOff+'h';applySun();hud()};
+$('nick').value=S.name;
+$('enter').onclick=()=>{S.name=$('nick').value.trim().slice(0,12)||'Guest';save();setTag();close('login')};
+applyLang();
+
+/* ===== 루프 ===== */
+let last=performance.now(),slow=0;const loginEl=$('login');
+function frame(t){const dt=Math.min(.1,(t-last)/1e3);last=t;slow+=dt;const intro=loginEl.classList.contains('on');
+ if(slow>.5){slow=0;applySun();hud()}
+ if(!intro)update(dt,t);sync(dt,t,intro);rnd.render(scene,cam);requestAnimationFrame(frame)}
+applySun();setTag();cam.position.set(CX,360,CY+640);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
